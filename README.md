@@ -17,6 +17,16 @@ $mysql_user = 'user';
 $mysql_pass = 'pass';
 ```
 
+Registration is disabled by default. Enable it in `backend/mysql_login.php` when you want the registration form to be shown:
+```php
+$mysql_settings_allow_registration = true;
+```
+
+If the user table was created by an older version, expand its password column before logging in:
+```sql
+ALTER TABLE link_users MODIFY password VARCHAR(255) NOT NULL;
+```
+
 If you prefer to name your database something other than **link**, edit this line in **mysql_login.php**
 ```php
 $mysql_database_name = 'link'; // rename link to whatever

@@ -1,37 +1,37 @@
-rad={};
+var rad = rad || {};
 
-rad.ajax=function(){
+rad.ajax = function() {
 	return this;
 };
 
-rad.ajax.prototype.get=function(script,data,method){
+rad.ajax.prototype.get = function(script, data, callback) {
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function() {
-	    if (this.readyState == 4 && this.status == 200)
-	    	if(method!=null)
-	    		method(xhr.responseText);
+		if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200 && callback) {
+			callback(xhr.responseText);
+		}
 	};
-	xhr.open("GET", script+"?"+data, true);
+	xhr.open('GET', script + (data ? '?' + data : ''), true);
 	xhr.send();
 	return xhr;
 };
 
-//https://plainjs.com/javascript/ajax/send-ajax-get-and-post-requests-47/
-// example request
-//post('http://foo.bar/', 'p1=1&p2=Hello+World', function(data){ console.log(data); });
-//post('http://foo.bar/', { p1: 1, p2: 'Hello World' }, function(data){ console.log(data); });
-rad.ajax.prototype.post=function(script,data,method){
-    var params = typeof data == 'string' ? data : Object.keys(data).map(
-            function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]) }
-        ).join('&');
+rad.ajax.prototype.post = function(script, data, callback) {
+	var params = typeof data === 'string'
+		? data
+		: Object.keys(data).map(function(key) {
+			return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+		}).join('&');
+	var xhr = new XMLHttpRequest();
 
-    var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
-    xhr.open('POST', script,true);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState>3 && xhr.status==200) { method(xhr.responseText); }
-    };
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.send(params);
-    return xhr;
-}
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200 && callback) {
+			callback(xhr.responseText);
+		}
+	};
+	xhr.open('POST', script, true);
+	xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+	xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	xhr.send(params);
+	return xhr;
+};

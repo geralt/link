@@ -3,69 +3,101 @@ class mysql{
 
 	var $conn;
 	var $user_table = '';
-	var $user_name = '';///incase we find it... lets just save this temporarily
-	var $user_id = -1;///same with this
+	var $user_name = '';
+	var $user_id = -1;
 	var $errMsg = '';
-	///
-	var $allow_multi_user = false;
+	var $allow_registration = false;
 
 	public function __construct(){
 		include('mysql_login.php');
 		$this->user_table = $mysql_user_table;
-		$this->allow_multi_user = $mysql_settings_allow_multi_user;
-		$this->conn = mysqli_connect ($mysql_host, $mysql_user, $mysql_pass) or die ("I cannot connect to the database because: " . mysqli_error($this->conn));
-		mysqli_select_db ($this->conn,$mysql_database_name) or die ("I cannot select the database '$mysql_database_name' because: " . mysqli_error($this->conn));
+		$registration_setting = $mysql_settings_allow_registration ?? ($mysql_settings_allow_multi_user ?? false);
+		$this->allow_registration = filter_var($registration_setting, FILTER_VALIDATE_BOOLEAN);
+		$this->conn = mysqli_connect($mysql_host, $mysql_user, $mysql_pass);
+		if (!$this->conn) {
+			error_log('Database connection failed: ' . mysqli_connect_error());
+			http_response_code(500);
+			exit('A database error occurred.');
+		}
+		if (!mysqli_select_db($this->conn, $mysql_database_name) || !mysqli_set_charset($this->conn, 'utf8mb4')) {
+			error_log('Database initialization failed: ' . mysqli_error($this->conn));
+			http_response_code(500);
+			exit('A database error occurred.');
+		}
 	}
 
-	//-------------------------------------
-	//      check if table exists
-	//-------------------------------------
-	//http://www.electrictoolbox.com/check-if-mysql-table-exists/php-function/
 	public function table_exists($table){
 		$exists=0;
-		$result = mysqli_query($this->conn,"SHOW TABLES LIKE '$table'") or die ('error reading database while looking for a specific table');
+		$table = mysqli_real_escape_string($this->conn, $table);
+		$result = mysqli_query($this->conn, "SHOW TABLES LIKE '$table'");
+		if (!$result) {
+			error_log('Database table lookup failed: ' . mysqli_error($this->conn));
+			http_response_code(500);
+			exit('A database error occurred.');
+		}
 		if (mysqli_num_rows ($result)>0)$exists=1;
 		
 		return $exists;
 	}
-	//
+	protected function database_failure($operation, $error){
+		error_log('Database ' . $operation . ' failed: ' . $error);
+		http_response_code(500);
+		exit('A database error occurred.');
+	}
 	public function init_tables($users_table){
 		$this->create_users_table($users_table);
 	}
 	public function create_user($table,$user,$password,$permission){
-		//if the table does not exist, amek it. This should only ever happen once
-		if(!$this->table_exists($table)) $this->init_tables($table);//$this->create_users_table($table);//create the table if it ain't already there
-		//I need to make sure that there isn't already a user with the same name. so that it isn't input twice
-		$passwordhashed = sha1($password);
+		if(!$this->table_exists($table)) {
+			$this->init_tables($table);
+		}
+		$passwordhashed = password_hash($password, PASSWORD_DEFAULT);
 		$created = date("Y-m-d H:i:s");
-		$query = "INSERT INTO $table (user, password, created, permission) VALUES ('$user', '$passwordhashed', '$created', $permission)";
-	
-		mysqli_query($this->conn,$query) or die('Error, creating user ' . mysqli_error($this->conn));    
+		$query = "INSERT INTO $table (user, password, created, permission) VALUES (?, ?, ?, ?)";
+		$stmt = mysqli_prepare($this->conn, $query);
+		mysqli_stmt_bind_param($stmt, 'sssi', $user, $passwordhashed, $created, $permission);
+		if (!mysqli_stmt_execute($stmt)) {
+			error_log('Database user creation failed: ' . mysqli_stmt_error($stmt));
+			http_response_code(500);
+			exit('Unable to create user.');
+		}
 	}
 	public function get_user_password($table,$user){
-		$all_users = mysqli_query($this->conn,"SELECT * FROM $table ORDER BY user_id DESC") or die( mysqli_error($this->conn));//get info from album table
-		while($au = mysqli_fetch_array( $all_users )){
-			if($au['user']==$user) {//this user does indeed exists
-				//store some of the information for now
-				$this->user_id = $au['user_id'];
-				$this->user_name = $au['user'];
-				return $au['password'] ;
-			}
+		$stmt = mysqli_prepare($this->conn,"SELECT user_id, user, password FROM $table WHERE user = ? LIMIT 1");
+		mysqli_stmt_bind_param($stmt, 's', $user);
+		mysqli_stmt_execute($stmt);
+		$result = mysqli_stmt_get_result($stmt);
+		$au = mysqli_fetch_assoc($result);
+		if ($au) {
+			$this->user_id = $au['user_id'];
+			$this->user_name = $au['user'];
+			return $au['password'];
 		}
-		return 'denied';//no user	
+		return 'denied';
+	}
+	public function update_user_password($table, $user_id, $password){
+		$passwordhashed = password_hash($password, PASSWORD_DEFAULT);
+		$stmt = mysqli_prepare($this->conn, "UPDATE $table SET password = ? WHERE user_id = ?");
+		mysqli_stmt_bind_param($stmt, 'si', $passwordhashed, $user_id);
+		if (!mysqli_stmt_execute($stmt)) {
+			error_log('Database password update failed: ' . mysqli_stmt_error($stmt));
+			http_response_code(500);
+			exit('Unable to update password.');
+		}
 	}
 
-	////create database stuff
 	function create_users_table($table){
 		if(!$this->table_exists($table))
 		{
-			mysqli_query($this->conn,"CREATE TABLE $table(
+			if (!mysqli_query($this->conn,"CREATE TABLE $table(
 				user_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				user VARCHAR(36) NOT NULL UNIQUE KEY,
-				password VARCHAR(44) NOT NULL,
+				password VARCHAR(255) NOT NULL,
 				created DATETIME,
 				permission TINYINT(1) NOT NULL
-				)")or die (mysqli_error($this->conn));
+				)")) {
+				$this->database_failure('user table creation', mysqli_error($this->conn));
+			}
 		}
 	}
 }

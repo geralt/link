@@ -1,6 +1,7 @@
 <html>
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Link</title>
 <script src="ajax.js"></script>
 <script src="index.js"></script>
@@ -8,19 +9,29 @@
 </head>
 <body>
 
-<div id="container">
-	<div id="container_left">
-		<div id="new_link"></div>
-		<div id="links"></div>
-		<div class="invisible" id="total_links_count"></div>
-		<div class="invisible" id="start_offset"></div>
-		<div class="invisible" id="end_offset"></div>
+	<div class="app_shell">
+		<header class="site_header">
+			<div>
+				<p class="eyebrow">PERSONAL LINK LIBRARY</p>
+				<h1>Link<span>.</span></h1>
+			</div>
+			<p class="header_note">Keep the good stuff close.</p>
+		</header>
+		<div id="container">
+			<main id="container_left">
+				<div id="new_link"></div>
+				<div id="links"></div>
+				<div class="invisible" id="total_links_count"></div>
+				<div class="invisible" id="start_offset"></div>
+				<div class="invisible" id="end_offset"></div>
+			</main>
+			<aside id="container_right">
+				<div id="login"></div>
+				<div id="tags"></div>
+			</aside>
 	</div>
-	<div id="container_right">
-		<div id="login"></div>
-		<div id="tags"></div>
+		<footer class="site_footer">A quiet place for useful things. App based on <a href="https://github.com/kevinslin/link">Link</a>.</footer>
 	</div>
-</div>
 
 </body>
 </html>
