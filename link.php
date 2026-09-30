@@ -34,6 +34,7 @@ function new_link_page()
 	return '<div id="container_new_link">
 		<form name="new_link_form" id="new_link_form">
 			<input type="hidden" name="csrf_token" value="'.html_value(csrf_token()).'">
+			<input name="new_title" type="text" id="new_title" placeholder="title" maxlength="200" required>
 			<input name="new_link" type="text" id="new_link" placeholder="http://" class="new_link_input">
 			<textarea name="new_desc" id="new_desc" placeholder="description" class="new_desc_input"></textarea>
 			<input name="new_tags" type="text" id="new_tags" placeholder="tag1, tag2" class="new_tags_input">
@@ -49,12 +50,19 @@ function link_html($link_data, $tag_data=array(), $can_delete=false)
 		$stags .= '<div class="link_tag" onclick="load_tagid_page('.(int)$tag->id.')">'.html_value($tag->name).'</div>';
 	}
 	$safe_url = safe_link_url($link_data['url']);
+	$title = trim((string)($link_data['titulo'] ?? ''));
+	if ($title === '') {
+		$title = $link_data['url'];
+	}
 	return '<div class="container_link">
-		<a class="link_ahref" href="'.$safe_url.'" target="_blank" rel="noopener noreferrer"><div class="link_ahref_bg">'.html_value($link_data['url']).'</div></a>
+		<div class="link_header">
+			<a class="link_ahref" href="'.$safe_url.'" target="_blank" rel="noopener noreferrer"><div class="link_ahref_bg">'.html_value($title).'</div></a>
+			'.($can_delete ? '<div class="link_card_actions"><button type="button" class="link_delete_button" title="eliminar elemento" aria-label="eliminar elemento" onclick="delete_link('.(int)$link_data['link_id'].')">&times;</button></div>' : '').'
+		</div>
+		<div class="link_url">'.html_value($link_data['url']).'</div>
 		<div id="link_description">'.html_value($link_data['description']).'</div>
 		<div class="container_link_tags">'.$stags.'</div>
 		<div id="link_posttime">'.html_value($link_data['posttime']).'</div>
-		'.($can_delete ? '<div class="link_card_actions"><button type="button" class="link_delete_button" onclick="delete_link('.(int)$link_data['link_id'].')">Delete</button></div>' : '').'
 	</div>';
 }
 
@@ -121,8 +129,12 @@ function process_new_link($payload)
 	if (strlen($url) > 2048 || !$parts || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || !in_array(strtolower($parts['scheme'] ?? ''), array('http', 'https'), true)) {
 		return 'The URL is invalid. It was not added.';
 	}
+	$title = substr(trim($payload['new_title'] ?? ''), 0, 200);
+	if ($title === '') {
+		return 'The title field cannot be empty.';
+	}
 	$mysql = new mysql_link();
-	$mysql->add_link($url, substr(trim($payload['new_desc'] ?? ''), 0, 2000), 'fake image link');
+	$mysql->add_link($url, substr(trim($payload['new_desc'] ?? ''), 0, 2000), 'fake image link', $title);
 	$link_id = $mysql->last_insert_id();
 	foreach (explode(',', $payload['new_tags'] ?? '') as $tag) {
 		$tag = substr(trim($tag), 0, 36);

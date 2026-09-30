@@ -10,6 +10,7 @@ class mysql_link extends mysql{
 	public function init_tables($users_table){
 		$this->create_users_table($users_table);
 		$this->create_link_table();
+		$this->ensure_link_title_column();
 		$this->create_tag_table();
 		$this->create_tag_rel_table();
 	}
@@ -22,8 +23,15 @@ class mysql_link extends mysql{
 			description TEXT NOT NULL,
 			imagelink TEXT NOT NULL,
 			posttime TEXT,
+			titulo TEXT NOT NULL DEFAULT '',
 			FOREIGN KEY (user_id) REFERENCES $this->user_table(user_id) ON DELETE CASCADE
 		)");
+	}
+	private function ensure_link_title_column(){
+		$columns = $this->db_query("PRAGMA table_info($this->mysql_link_table)")->fetchAll(PDO::FETCH_COLUMN, 1);
+		if (!in_array('titulo', $columns, true)) {
+			$this->db_query("ALTER TABLE $this->mysql_link_table ADD COLUMN titulo TEXT NOT NULL DEFAULT ''");
+		}
 	}
 	function create_tag_table(){
 		$this->db_query("CREATE TABLE IF NOT EXISTS $this->mysql_tag_table (
@@ -54,10 +62,10 @@ class mysql_link extends mysql{
 		return (string)$stmt->fetchColumn();
 	}
 
-	public function add_link($url,$description,$imagelink){
+	public function add_link($url,$description,$imagelink,$titulo = ''){
 		$user_id = (int)$_SESSION['user_id'];
 		$posttime = date("Y-m-d H:i:s");
-		$this->db_query("INSERT INTO $this->mysql_link_table (user_id, url, description, imagelink, posttime) VALUES (?, ?, ?, ?, ?)", array($user_id, $url, $description, $imagelink, $posttime));
+		$this->db_query("INSERT INTO $this->mysql_link_table (user_id, url, description, imagelink, posttime, titulo) VALUES (?, ?, ?, ?, ?, ?)", array($user_id, $url, $description, $imagelink, $posttime, $titulo));
 	}
 
 	public function add_tag($tag,$link_id){

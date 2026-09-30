@@ -210,6 +210,26 @@ button:hover {
   overflow-wrap: anywhere;
 }
 
+.link_header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.link_header .link_ahref {
+  flex: 1;
+  min-width: 0;
+}
+
+.link_url {
+  margin-top: 5px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 #link_description {
   margin-top: 11px;
   color: var(--ink-soft);
@@ -226,8 +246,19 @@ button:hover {
 
 .link_card_actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 14px;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.link_delete_button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 0;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .link_tag,
@@ -256,6 +287,7 @@ button:hover {
   color: #8a9a94;
   font-size: 11px;
   letter-spacing: 0.5px;
+  display: none;
 }
 
 #login {
