@@ -13,6 +13,7 @@ class mysql{
 
 	public function __construct(){
 		include(__DIR__ . '/mysql_login.ini.php');
+		$sqlite_database_file = getenv('LINK_SQLITE_PATH') ?: $sqlite_database_file;
 		$this->user_table = $mysql_user_table;
 		$this->mysql_link_table = $mysql_link_table;
 		$this->mysql_tag_table = $mysql_tag_table;

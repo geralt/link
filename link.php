@@ -42,7 +42,7 @@ function new_link_page()
 	</div>';
 }
 
-function link_html($link_data, $tag_data=array())
+function link_html($link_data, $tag_data=array(), $can_delete=false)
 {
 	$stags = '';
 	foreach ($tag_data as $tag) {
@@ -54,6 +54,7 @@ function link_html($link_data, $tag_data=array())
 		<div id="link_description">'.html_value($link_data['description']).'</div>
 		<div class="container_link_tags">'.$stags.'</div>
 		<div id="link_posttime">'.html_value($link_data['posttime']).'</div>
+		'.($can_delete ? '<div class="link_card_actions"><button type="button" class="link_delete_button" onclick="delete_link('.(int)$link_data['link_id'].')">Delete</button></div>' : '').'
 	</div>';
 }
 
@@ -85,7 +86,7 @@ function get_focused_links($focus, $payload)
 		$data->html .= 'Unbelievable, there are no links here.';
 	} else {
 		foreach ($fetched->links as $i => $link) {
-			$data->html .= link_html($link, $fetched->tags[$i] ?? array());
+			$data->html .= link_html($link, $fetched->tags[$i] ?? array(), $focus);
 		}
 	}
 	$data->paging = paging_info($fetched->total_count, $fetched->start_offset, $fetched->end_offset);
@@ -132,6 +133,19 @@ function process_new_link($payload)
 	return $mysql->errMsg;
 }
 
+function process_delete_link($payload)
+{
+	if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+		return 'You must be logged in to delete a link.';
+	}
+	$link_id = filter_var($payload['link_id'] ?? null, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)));
+	if ($link_id === false) {
+		return 'Invalid link.';
+	}
+	$mysql = new mysql_link();
+	return $mysql->delete_link($link_id, $_SESSION['user_id']) ? 'ok' : 'Unable to delete this link.';
+}
+
 if (isset($_GET['q'])) {
 	if ($_GET['q'] === 'login') {
 		echo isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true ? logout_button() : attemp_login(array());
@@ -161,6 +175,9 @@ if (isset($_POST['q'])) {
 	}
 	if ($_POST['q'] === 'process_new_link') {
 		echo process_new_link($_POST);
+	}
+	if ($_POST['q'] === 'delete_link') {
+		echo process_delete_link($_POST);
 	}
 }
 ?>

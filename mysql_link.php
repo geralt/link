@@ -72,6 +72,30 @@ class mysql_link extends mysql{
 		$this->db_query("INSERT INTO $this->mysql_link_tag_table (link_id, tag_id) VALUES (?, ?)", array($link_id, $tag_id));
 	}
 
+	public function delete_link($link_id, $user_id){
+		$this->conn->beginTransaction();
+		$tag_ids = $this->db_query(
+			"SELECT tag_id FROM $this->mysql_link_tag_table WHERE link_id = ?",
+			array((int)$link_id)
+		)->fetchAll(PDO::FETCH_COLUMN);
+		$deleted = $this->db_query(
+			"DELETE FROM $this->mysql_link_table WHERE link_id = ? AND user_id = ?",
+			array((int)$link_id, (int)$user_id)
+		)->rowCount();
+		if ($deleted !== 1) {
+			$this->conn->rollBack();
+			return false;
+		}
+		foreach ($tag_ids as $tag_id) {
+			$this->db_query("DELETE FROM $this->mysql_tag_table
+				WHERE tag_id = ? AND NOT EXISTS (
+					SELECT 1 FROM $this->mysql_link_tag_table WHERE tag_id = ?
+				)", array((int)$tag_id, (int)$tag_id));
+		}
+		$this->conn->commit();
+		return true;
+	}
+
 	private function get_link_tag_relationship($link_id)
 	{
 		$link_id = (int)$link_id;

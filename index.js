@@ -55,6 +55,25 @@ function process_new_link() {
 	});
 }
 
+function delete_link(linkId) {
+	if (!window.confirm('Delete this saved link?')) {
+		return;
+	}
+	var token = document.getElementById('csrf_token');
+	if (!token) {
+		return;
+	}
+	ajaxClient.post('link.php', {q: 'delete_link', link_id: linkId, csrf_token: token.value}, function(response) {
+		if (response !== 'ok') {
+			alert(response || 'Unable to delete this link.');
+			return;
+		}
+		selectedTag = null;
+		window.history.replaceState(null, '', window.location.pathname);
+		loadLinks(true);
+	});
+}
+
 function loadLinks(refresh, begin, limit) {
 	var offset = begin || 0;
 	var pageSize = limit || 10;
