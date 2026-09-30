@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Link - Personal Link Library",
+  "short_name": "Link",
+  "description": "A personal library for saved links and tags.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4efe6",
+  "theme_color": "#173c3b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

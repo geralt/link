@@ -2,10 +2,15 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="theme-color" content="#173c3b"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>Link</title>
 <script src="ajax.js"></script>
 <script src="index.js"></script>
 <link rel="stylesheet" href="index.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 </head>
 <body>
 
@@ -17,6 +22,7 @@
 			</div>
 			<p class="header_note">Keep the good stuff close.</p>
 		</header>
+		<p class="network_status" id="network_status" role="status" hidden>Offline: reconnect to load your links.</p>
 		<div id="container">
 			<main id="container_left">
 				<div id="new_link"></div>

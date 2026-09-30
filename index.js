@@ -108,6 +108,23 @@ function load_tagid_page(tagId) {
 }
 
 function initialize() {
+	var networkStatus = document.getElementById('network_status');
+	var updateNetworkStatus = function() {
+		networkStatus.hidden = navigator.onLine;
+	};
+	window.addEventListener('online', updateNetworkStatus);
+	window.addEventListener('offline', updateNetworkStatus);
+	window.addEventListener('link:network-error', function() {
+		networkStatus.hidden = false;
+	});
+	updateNetworkStatus();
+
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('service-worker.js').catch(function(error) {
+			console.warn('Service worker registration failed:', error);
+		});
+	}
+
 	ajaxClient.get('link.php', 'q=login', function(response) {
 		document.getElementById('login').innerHTML = response;
 		var tagId = parseInt(new URLSearchParams(window.location.search).get('tagid'), 10);

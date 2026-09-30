@@ -75,6 +75,15 @@ h1 span {
   margin: 0 0 6px;
 }
 
+.network_status {
+  margin: 0 8px 14px;
+  padding: 10px 13px;
+  color: var(--accent-dark);
+  background: #fff0eb;
+  border-left: 3px solid var(--accent);
+  font-size: 13px;
+}
+
 #container {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
@@ -156,6 +165,7 @@ button {
   font: inherit;
   font-weight: bold;
   transition: background 160ms ease, transform 160ms ease;
+  margin: 1em 4em;
 }
 
 #new_link_form input[type="button"]:hover,

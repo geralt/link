@@ -7,8 +7,12 @@ rad.ajax = function() {
 rad.ajax.prototype.get = function(script, data, callback) {
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function() {
-		if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200 && callback) {
-			callback(xhr.responseText);
+		if (xhr.readyState === XMLHttpRequest.DONE) {
+			if (xhr.status === 200 && callback) {
+				callback(xhr.responseText);
+			} else if (xhr.status === 0) {
+				window.dispatchEvent(new Event('link:network-error'));
+			}
 		}
 	};
 	xhr.open('GET', script + (data ? '?' + data : ''), true);
