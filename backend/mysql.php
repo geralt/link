@@ -3,41 +3,57 @@ class mysql{
 
 	var $conn;
 	var $user_table = '';
+	var $mysql_link_table = '';
+	var $mysql_tag_table = '';
+	var $mysql_link_tag_table = '';
 	var $user_name = '';
 	var $user_id = -1;
 	var $errMsg = '';
 	var $allow_registration = false;
 
 	public function __construct(){
-		include('mysql_login.php');
+		include(__DIR__ . '/mysql_login.ini.php');
 		$this->user_table = $mysql_user_table;
+		$this->mysql_link_table = $mysql_link_table;
+		$this->mysql_tag_table = $mysql_tag_table;
+		$this->mysql_link_tag_table = $mysql_link_tag_table;
 		$registration_setting = $mysql_settings_allow_registration ?? ($mysql_settings_allow_multi_user ?? false);
 		$this->allow_registration = filter_var($registration_setting, FILTER_VALIDATE_BOOLEAN);
-		$this->conn = mysqli_connect($mysql_host, $mysql_user, $mysql_pass);
-		if (!$this->conn) {
-			error_log('Database connection failed: ' . mysqli_connect_error());
-			http_response_code(500);
-			exit('A database error occurred.');
+		foreach (array($this->user_table, $this->mysql_link_table, $this->mysql_tag_table, $this->mysql_link_tag_table) as $table) {
+			if (!preg_match('/\\A[A-Za-z_][A-Za-z0-9_]*\\z/', $table)) {
+				$this->database_failure('configuration', 'Invalid table name.');
+			}
 		}
-		if (!mysqli_select_db($this->conn, $mysql_database_name) || !mysqli_set_charset($this->conn, 'utf8mb4')) {
-			error_log('Database initialization failed: ' . mysqli_error($this->conn));
+		if (!is_dir(dirname($sqlite_database_file)) || !is_writable(dirname($sqlite_database_file))) {
+			$this->database_failure('database path', 'Database directory does not exist or is not writable.');
+		}
+		try {
+			$this->conn = new PDO('sqlite:' . $sqlite_database_file, null, null, array(
+				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+				PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+				PDO::ATTR_EMULATE_PREPARES => false
+			));
+			$this->conn->exec('PRAGMA foreign_keys = ON');
+		} catch (PDOException $error) {
+			error_log('Database initialization failed: ' . $error->getMessage());
 			http_response_code(500);
 			exit('A database error occurred.');
 		}
 	}
 
-	public function table_exists($table){
-		$exists=0;
-		$table = mysqli_real_escape_string($this->conn, $table);
-		$result = mysqli_query($this->conn, "SHOW TABLES LIKE '$table'");
-		if (!$result) {
-			error_log('Database table lookup failed: ' . mysqli_error($this->conn));
-			http_response_code(500);
-			exit('A database error occurred.');
+	protected function db_query($sql, $parameters = array()){
+		try {
+			$statement = $this->conn->prepare($sql);
+			$statement->execute($parameters);
+			return $statement;
+		} catch (PDOException $error) {
+			$this->database_failure('query', $error->getMessage());
 		}
-		if (mysqli_num_rows ($result)>0)$exists=1;
-		
-		return $exists;
+	}
+
+	public function table_exists($table){
+		$statement = $this->db_query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1", array($table));
+		return $statement->fetchColumn() !== false;
 	}
 	protected function database_failure($operation, $error){
 		error_log('Database ' . $operation . ' failed: ' . $error);
@@ -54,20 +70,11 @@ class mysql{
 		$passwordhashed = password_hash($password, PASSWORD_DEFAULT);
 		$created = date("Y-m-d H:i:s");
 		$query = "INSERT INTO $table (user, password, created, permission) VALUES (?, ?, ?, ?)";
-		$stmt = mysqli_prepare($this->conn, $query);
-		mysqli_stmt_bind_param($stmt, 'sssi', $user, $passwordhashed, $created, $permission);
-		if (!mysqli_stmt_execute($stmt)) {
-			error_log('Database user creation failed: ' . mysqli_stmt_error($stmt));
-			http_response_code(500);
-			exit('Unable to create user.');
-		}
+		$this->db_query($query, array($user, $passwordhashed, $created, $permission));
 	}
 	public function get_user_password($table,$user){
-		$stmt = mysqli_prepare($this->conn,"SELECT user_id, user, password FROM $table WHERE user = ? LIMIT 1");
-		mysqli_stmt_bind_param($stmt, 's', $user);
-		mysqli_stmt_execute($stmt);
-		$result = mysqli_stmt_get_result($stmt);
-		$au = mysqli_fetch_assoc($result);
+		$stmt = $this->db_query("SELECT user_id, user, password FROM $table WHERE user = ? LIMIT 1", array($user));
+		$au = $stmt->fetch();
 		if ($au) {
 			$this->user_id = $au['user_id'];
 			$this->user_name = $au['user'];
@@ -77,28 +84,20 @@ class mysql{
 	}
 	public function update_user_password($table, $user_id, $password){
 		$passwordhashed = password_hash($password, PASSWORD_DEFAULT);
-		$stmt = mysqli_prepare($this->conn, "UPDATE $table SET password = ? WHERE user_id = ?");
-		mysqli_stmt_bind_param($stmt, 'si', $passwordhashed, $user_id);
-		if (!mysqli_stmt_execute($stmt)) {
-			error_log('Database password update failed: ' . mysqli_stmt_error($stmt));
-			http_response_code(500);
-			exit('Unable to update password.');
-		}
+		$this->db_query("UPDATE $table SET password = ? WHERE user_id = ?", array($passwordhashed, $user_id));
+	}
+	public function last_insert_id(){
+		return (int)$this->conn->lastInsertId();
 	}
 
 	function create_users_table($table){
-		if(!$this->table_exists($table))
-		{
-			if (!mysqli_query($this->conn,"CREATE TABLE $table(
-				user_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-				user VARCHAR(36) NOT NULL UNIQUE KEY,
-				password VARCHAR(255) NOT NULL,
-				created DATETIME,
-				permission TINYINT(1) NOT NULL
-				)")) {
-				$this->database_failure('user table creation', mysqli_error($this->conn));
-			}
-		}
+		$this->db_query("CREATE TABLE IF NOT EXISTS $table (
+			user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user TEXT NOT NULL UNIQUE,
+			password TEXT NOT NULL,
+			created TEXT,
+			permission INTEGER NOT NULL
+		)");
 	}
 }
 ?>

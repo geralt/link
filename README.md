@@ -3,36 +3,13 @@
 ![link screenshot](https://user-images.githubusercontent.com/5643219/123357944-8e774c80-d538-11eb-9609-5d550a86f83a.png)
 
 # setup
-Tested with:  
-* PHP Version 7.3.19-1~deb10u1
-* mysql  Ver 15.1 Distrib 10.3.27-MariaDB, for debian-linux-gnueabihf (armv8l) using readline 5.2
+Requires PHP with PDO SQLite enabled. The SQLite file is created at `data/link.sqlite`; Apache must be able to write to the `data` directory. Requests to that directory are denied by `data/.htaccess`. Set the database table names and registration option in `backend/mysql_login.ini.php`.
 
-Have a mysql database named **link** ( this can be something else if desired * ).  
-Duplicate or rename **/backend/mysql_login.ini.php** as **/backend/mysql_login.php**
-
-Fill in the relavant fields for:
-```php
-$mysql_host = 'host'; // this might be simply 'localhost'
-$mysql_user = 'user';
-$mysql_pass = 'pass';
-```
-
-Registration is disabled by default. Enable it in `backend/mysql_login.php` when you want the registration form to be shown:
+The schema is created automatically the first time the application connects. Registration is disabled by default. To create the first account, temporarily enable registration in `backend/mysql_login.ini.php`:
 ```php
 $mysql_settings_allow_registration = true;
 ```
-
-If the user table was created by an older version, expand its password column before logging in:
-```sql
-ALTER TABLE link_users MODIFY password VARCHAR(255) NOT NULL;
-```
-
-If you prefer to name your database something other than **link**, edit this line in **mysql_login.php**
-```php
-$mysql_database_name = 'link'; // rename link to whatever
-```
-The relevant tables can also be renamed is desired *.  
-*Note: none of this renaming has been tested, but should theoretically work.
+After registering the initial account, set the value back to `false`. Ensure the Apache configuration allows `.htaccess` overrides for the project directory (`AllowOverride AuthConfig` or `AllowOverride All`).
 
 # todo
 * Editing posted links

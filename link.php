@@ -122,7 +122,7 @@ function process_new_link($payload)
 	}
 	$mysql = new mysql_link();
 	$mysql->add_link($url, substr(trim($payload['new_desc'] ?? ''), 0, 2000), 'fake image link');
-	$link_id = $mysql->conn->insert_id;
+	$link_id = $mysql->last_insert_id();
 	foreach (explode(',', $payload['new_tags'] ?? '') as $tag) {
 		$tag = substr(trim($tag), 0, 36);
 		if ($tag !== '') {

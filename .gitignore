@@ -1,2 +1,4 @@
 mysql_login.php
 tmp.php
+data/*.sqlite
+data/*.sqlite-*
